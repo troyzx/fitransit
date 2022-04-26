@@ -1,0 +1,7 @@
+Parameter, Distribution, InputA,        InputB, Filter
+P,         gaussian,     6,             0.001,
+t0,        gaussian,     2457843.45246, 0.007,
+a,         gaussian,     7.64,          0.5,
+inc,       gaussian,     88.5,          1.2,
+rp,        fixed,        0.13,
+ecc,       fixed,        0,             ,

@@ -1,0 +1,9 @@
+**/*.ipynb_checkpoints/
+._*.ipynb
+*.fits
+*.swp
+src
+index.html
+env
+.DS_Store
+**/.DS_Store
