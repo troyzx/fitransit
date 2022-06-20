@@ -36,36 +36,6 @@ class SingleFit(BaseLPF):
         fig.tight_layout()
         return fig
     
-    def plot_single_folded_transit(self, figsize=(13, 6), ylim=(0.9975, 1.002), xlim=None):
-        if method == 'de':
-            pv = self.de.minimum_location
-            tc, p = pv[[0, 1]]
-        else:
-            raise NotImplementedError
-
-        phase = p * fold(self.timea, p, tc, 0.5)
-        binwidth = binwidth / 24 / 60
-        sids = np.argsort(phase)
-
-        tm = self.transit_model(pv)
-
-        if remove_baseline:
-            gp = self._lnlikelihood_models[0]
-            bl = np.squeeze(gp.predict_baseline(pv))
-        else:
-            bl = np.ones_like(self.ofluxa)
-
-        bp, bfo, beo = downsample_time(phase[sids], (self.ofluxa / bl)[sids], binwidth)
-
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.plot(phase - 0.5 * p, self.ofluxa / bl, '.', alpha=0.15)
-        ax.errorbar(bp - 0.5 * p, bfo, beo, fmt='ko')
-        ax.plot(phase[sids] - 0.5 * p, tm[sids], 'k')
-        xlim = xlim if xlim is not None else 1.01 * (bp[np.isfinite(bp)][[0, -1]] - 0.5 * p)
-        plt.setp(ax, ylim=ylim, xlim=xlim, xlabel='Time - Tc [d]', ylabel='Normalised flux')
-        fig.tight_layout()
-        return fig
-    
 
     def plot_corner(self):
 

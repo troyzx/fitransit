@@ -231,7 +231,7 @@ class fitlpf:
     
     
     
-    def plot_ttv_re(self,plot_zero_epoch=False):
+    def plot_ttv_re(self,plot_zero_epoch=False,set_epoch_zero=False):
         
         epochs = self.epochs
         tcs = self.tcs
@@ -241,6 +241,12 @@ class fitlpf:
             epochs = np.insert(epochs,0,0)
         
         re = getn_v(tcs) - epochs * self.period - self.zero_epoch
+        
+        if set_epoch_zero == True:
+            if plot_zero_epoch == False:
+                epochs = epochs - epochs[0]
+            else:
+                raise Exception('Cannot set plot_zero_epoch and set_epoch_zero = True at the same time')
         
         daytos = 24*60*60
         fig,ax = plt.subplots(figsize=(10,6),dpi=200)
