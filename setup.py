@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="fitransit",
-    version="0.0.2",
+    version="0.0.3",
     author="Zhang Zixin",
     author_email="troyzx@icloud.com",
     description="A fast tool to fit transit light curve.",
