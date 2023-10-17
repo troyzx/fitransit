@@ -5,15 +5,15 @@ import os
 import requests
 import matplotlib.pyplot as plt
 from astroquery.mast import Observations
-import rebound
+# import rebound
 import matplotlib.colors as colors
-import scipy.stats
-from multiprocessing import get_context
+# import scipy.stats
+# from multiprocessing import get_context
 from uncertainties import ufloat
 from pytransit.lpf.tesslpf import TESSLPF
 from pytransit.orbits import epoch
 from scipy.optimize import curve_fit
-from tqdm.auto import tqdm
+# from tqdm.auto import tqdm
 
 planeturl = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/"
 dvurl = "https://exo.mast.stsci.edu/api/v0.1/dvdata/tess/"

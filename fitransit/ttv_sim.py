@@ -13,7 +13,7 @@ daytos = 24 * 60 * 60
 
 
 """
-This code defines a class, ttv_analy, which is built to perform simulations of
+This code defines a class, ttv_sim, which is built to perform simulations of
 exoplanetary systems using the REBOUND N-body integrator. The class has
 several methods for running simulations, calculating transit times, and
 generating plots of the results.
@@ -97,7 +97,8 @@ class ttv_sim:
             try:
                 sim.integrate(sim.t + period_min / 4)
                 # check for transits every <period_min / 4>
-                # Note that <period_min / 4> is shorter than one inner planet's orbit
+                # Note that <period_min / 4>
+                # is shorter than one inner planet's orbit
             except rebound.Escape:
                 # print("Escape at r={}, mp2={} when i={}".format(r,mp2,i))
                 break
@@ -115,13 +116,13 @@ class ttv_sim:
                         t_old = sim.t
                     try:
                         sim.integrate((t_new + t_old) / 2.0)
-                    except:
+                    except (rebound.Escape, rebound.Collision):
                         break
                 transittimes[i] = sim.t
                 i += 1
                 try:
                     sim.integrate(sim.t + 5e-5)
-                except:
+                except (rebound.Escape, rebound.Collision):
                     break
         c, m = np.linalg.lstsq(
             np.vstack([np.ones(N), range(N)]).T, transittimes, rcond=None
@@ -138,7 +139,9 @@ class ttv_sim:
                 parameters.append((r, mp2))
         with get_context("fork").Pool(number_of_thread) as p:
             self.ttv_results = list(
-                tqdm(p.imap(self.calculate_rebound, parameters), total=len(parameters))
+                tqdm(
+                    p.imap(self.calculate_rebound, parameters),
+                    total=len(parameters))
             )
         self.ttv_rebound = np.array(self.ttv_results)
         return self.ttv_rebound
@@ -239,7 +242,10 @@ class ttv_sim:
 
         with get_context("fork").Pool(number_of_threads) as p:
             self.megno_results = list(
-                tqdm(p.imap(self.simulation_m, parameters), total=len(parameters))
+                tqdm(
+                    p.imap(self.simulation_m, parameters),
+                    total=len(parameters)
+                    )
             )
         return self.megno_results
 
