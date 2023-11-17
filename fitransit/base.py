@@ -93,9 +93,17 @@ DAY_TO_SEC = 24 * 60 * 60
 
 
 def get_id(planet_name: str):
+    """
+    Get the TIC ID for a given planet name.
+
+    Args:
+        planet_name (str): The name of the planet.
+
+    Returns:
+        int: The TIC ID of the planet.
+    """
     myparams = {"name": planet_name}
     r = requests.get(url=URL, params=myparams, headers=header, timeout=10)
-    # print(r.headers.get('content-type'))
     planet_names = r.json()
     ticid = planet_names["tessID"]
 
@@ -103,6 +111,15 @@ def get_id(planet_name: str):
 
 
 def get_prop(planet_name: str):
+    """
+    Get the properties of a planet.
+
+    Args:
+        planet_name (str): The name of the planet.
+
+    Returns:
+        dict: The properties of the planet in JSON format.
+    """
     url = PLANETURL + planet_name + "/properties/"
     r = requests.get(url=url, headers=header, timeout=10)
     return r.json()
@@ -114,16 +131,18 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     """
 
     new_cmap = colors.LinearSegmentedColormap.from_list(
-        "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
+        f"trunc({cmap.name},{minval:.2f},{maxval:.2f})",
         cmap(np.linspace(minval, maxval, n)),
     )
     return new_cmap
 
 
-# create a new directory and save data, while also checking if the folder
-# exists and asking the user if they want to create a new folder, and if the
-# file already exists, asking if the user wants to overwrite it
 def save_df_data(dir_path, file_name, df_data):
+    """
+    create a new directory and save data, while also checking if the folder
+    exists and asking the user if they want to create a new folder, and if the
+    file already exists, asking if the user wants to overwrite it
+    """
     # Check if the directory exists:
     if not os.path.exists(dir_path):
         # The directory doesn't exist, so ask the user if they want to create
@@ -156,15 +175,43 @@ def save_df_data(dir_path, file_name, df_data):
 
 
 def read_data(name: str):
+    """
+    Read data from a file.
+
+    Args:
+        name (str): The name of the file to read.
+
+    Returns:
+        file: The opened file object.
+
+    """
     with open(name, "r", encoding="utf-8") as file:
         return file
 
 
 def getn(unfloat):
+    """
+    Get the value of 'n' from the given 'unfloat' object.
+
+    Parameters:
+    unfloat (Unfloat): The Unfloat object.
+
+    Returns:
+    int: The value of 'n'.
+    """
     return unfloat.n
 
 
 def gets(unfloat):
+    """
+    Get the 's' attribute from the input unfloat object.
+
+    Parameters:
+    unfloat (object): The input unfloat object.
+
+    Returns:
+    str: The value of the 's' attribute.
+    """
     return unfloat.s
 
 
@@ -173,7 +220,7 @@ gets_v = np.vectorize(gets)
 epoch_v = np.vectorize(epoch)
 
 
-class fitlpf:
+class Fitlpf:
     """
     Class for fitting a TESS light curve with a transit model and
     calculating the transit timing variations (TTVs).
@@ -232,18 +279,30 @@ class fitlpf:
         self.post_samples = []
         self.tcs = []
         self.epochs = []
+        self.ttv_err = None
+        self.ttv_mcmc_raw = None
+        self.ttv_mcmc = None
+        self.fit_single_v = None
 
     def get_parameter(self):
+        """
+        Retrieves the parameters for the given planet.
+
+        Returns:
+            None
+        """
         planet_name = self.planet_name
         ticid = get_id(planet_name)
         self.prop = get_prop(planet_name)
         transit_time = self.prop[0]["transit_time"] + 2.4e6 + 0.5
         transit_time_err = max(
-            self.prop[0]["transit_time_lower"], self.prop[0]["transit_time_upper"]
+            self.prop[0]["transit_time_lower"],
+            self.prop[0]["transit_time_upper"]
         )
         orbital_period = self.prop[0]["orbital_period"]
         orbital_period_err = max(
-            self.prop[0]["orbital_period_lower"], self.prop[0]["orbital_period_upper"]
+            self.prop[0]["orbital_period_lower"],
+            self.prop[0]["orbital_period_upper"]
         )
         self.period = ufloat(orbital_period, orbital_period_err)
         self.zero_epoch = ufloat(transit_time, transit_time_err)
@@ -251,31 +310,50 @@ class fitlpf:
         self.print_parameters()
 
     def print_parameters(self):
+        """
+        Print the parameters of the planet.
+
+        This method prints the properties of the planet,
+        including the stellar mass, planet mass,
+        planet orbital period, transit time, and planet mass reference.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
         planet_prop = self.prop
-        print(self.planet_name + " Properties")
+        print(f"{self.planet_name} Properties")
         print(
-            "Stellar Mass \t\t%f \t\t%s"
-            % (planet_prop[0]["Ms"], planet_prop[0]["Ms_unit"])
+            f"Stellar Mass \t\t{planet_prop[0]['Ms']} \t\t"
+            f"{planet_prop[0]['Ms_unit']}"
         )
         print(
-            "Planet Mass \t\t%f \t\t%s"
-            % (planet_prop[0]["Mp"], planet_prop[0]["Mp_unit"])
+            f"Planet Mass \t\t{planet_prop[0]['Mp']} \t\t"
+            f"{planet_prop[0]['Mp_unit']}"
         )
         print(
-            "Planet Orbital Period \t%f \t\t%s"
-            % (planet_prop[0]["orbital_period"], planet_prop[0]["orbital_period_unit"])
+            f"Planet Orbital Period \t{planet_prop[0]['orbital_period']} \t\t"
+            f"{planet_prop[0]['orbital_period_unit']}"
         )
         print(
-            "Transit Time \t\t%f \t\t%s"
-            % (
-                planet_prop[0]["transit_time"] + 0.5,
-                planet_prop[0]["transit_time_unit"],
-            )
+            f"Transit Time \t\t{planet_prop[0]['transit_time'] + 0.5} \t\t"
+            f"{planet_prop[0]['transit_time_unit']}"
         )
-        print("Planet Mass Reference: %s" % (planet_prop[0]["Mp_ref"]))
+        print(f"Planet Mass Reference: {planet_prop[0]['Mp_ref']}")
 
     def download_data(self):
-        observations = Observations.query_object(self.planet_name, radius="0 deg")
+        """
+        Downloads data from the specified planet and returns
+        the manifest of downloaded products.
+
+        Returns:
+            manifest (str): The manifest of downloaded products.
+        """
+        observations = Observations.query_object(
+            self.planet_name,
+            radius="0 deg")
         obs_wanted = (observations["dataproduct_type"] == "timeseries") & (
             observations["obs_collection"] == "TESS"
         )
@@ -293,6 +371,19 @@ class fitlpf:
         return manifest
 
     def de(self, niter=200, npop=30, datadir=None):
+        """
+        Perform differential evolution optimization.
+
+        Args:
+            niter (int): Number of iterations for the optimization.
+            Default is 200.
+            npop (int): Number of individuals in the population.
+            Default is 30.
+            datadir (str): Directory path for the data. Default is None.
+
+        Returns:
+            None
+        """
         zero_epoch = self.zero_epoch
         period = self.period
 
@@ -326,13 +417,35 @@ class fitlpf:
         self.lpf.optimize_global(niter=niter, npop=npop)
 
     def plot_original_data(self):
+        """
+        Plot the original data.
+
+        Returns:
+            fig (matplotlib.figure.Figure): The figure object.
+            ax (matplotlib.axes.Axes): The axes object.
+        """
         timea = self.lpf.timea
         fluxa = self.lpf.ofluxa
         fig, ax = plt.subplots(figsize=(10, 6), dpi=200)
         plt.plot(timea, fluxa)
-        return fig
+        return fig, ax
 
     def fit_single(self, i, niter=100, npop=50, mcmc_repeats=4):
+        """
+        Fits a single transit light curve.
+
+        Args:
+            i (int): Index of the light curve to fit.
+            niter (int, optional): Number of iterations for
+            global optimization. Defaults to 100.
+            npop (int, optional): Population size for global optimization.
+            Defaults to 50.
+            mcmc_repeats (int, optional): Number of MCMC repeats.
+            Defaults to 4.
+
+        Returns:
+            SingleFit: The fitted single transit light curve.
+        """
         single = SingleFit(
             self.planet_name + str(i) + "th",
             None,
@@ -357,7 +470,19 @@ class fitlpf:
 
         return single
 
-    def fit_singles(self, niter=100, npop=50):
+    def fit_singles(self):
+        """
+        Fits transit models to individual light curves.
+
+        Args:
+            niter (int): Number of iterations for fitting the transit model.
+            Default is 100.
+            npop (int): Number of populations for the genetic algorithm.
+            Default is 50.
+
+        Returns:
+            None
+        """
         self.fit_single_v = np.vectorize(self.fit_single)
         self.singles = self.fit_single_v(np.arange(len(self.lpf.times)))
         self.post_samples = []
@@ -368,9 +493,16 @@ class fitlpf:
             tc = ufloat(df["tc"].mean(), df["tc"].std())
             self.tcs.append(tc)
 
-        self.epochs = epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
+        self.epochs = \
+            epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
 
     def get_posterior_samples(self):
+        """
+        Retrieves the posterior samples for each single transit in the dataset.
+
+        Returns:
+            None
+        """
         self.post_samples = []
         self.tcs = []
         for single in self.singles:
@@ -378,9 +510,16 @@ class fitlpf:
             self.post_samples.append(df)
             tc = ufloat(df["tc"].mean(), df["tc"].std())
             self.tcs.append(tc)
-        self.epochs = epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
+        self.epochs = \
+            epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
 
     def calculate_ttv(self):
+        """
+        Calculate the Transit Timing Variations (TTV) for the given object.
+
+        Returns:
+            None
+        """
         day_to_s = 24 * 60 * 60
         tcs = getn_v(self.tcs)
         epochs = self.epochs
@@ -388,12 +527,13 @@ class fitlpf:
             gets_v(self.tcs) + self.period.s * (epochs - epochs[0])
         ) * day_to_s
 
-        def f_1(x, A, B):
-            return A * x + B
+        def f_1(x, a, b):
+            return a * x + b
 
-        A, B = curve_fit(f_1, epochs - epochs[0], tcs - tcs[0])[0]
+        a, b = curve_fit(f_1, epochs - epochs[0], tcs - tcs[0])[0]
 
-        self.ttv_mcmc_raw = (tcs - tcs[0] - A * (epochs - epochs[0]) + B) * DAY_TO_SEC
+        self.ttv_mcmc_raw = (tcs - tcs[0] - a * (epochs - epochs[0]) + b) \
+            * DAY_TO_SEC
         self.ttv_mcmc = self.ttv_mcmc_raw - self.ttv_mcmc_raw.mean()
 
     def plot_tcs(self, plot_zero_epoch=False):
@@ -422,10 +562,8 @@ class fitlpf:
         return fig, ax
 
     def plot_ttv_re(
-            self, plot_zero_epoch=False,
-            set_epoch_zero=False,
-            remove_baseline=True
-            ):
+        self, plot_zero_epoch=False, set_epoch_zero=False, remove_baseline=True
+    ):
         """
         Plot the TTV (transit timing variation) residuals.
 
