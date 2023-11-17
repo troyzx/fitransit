@@ -267,7 +267,8 @@ class Fitlpf:
 
     def __init__(self, planet_name: str, datadir=None):
         if datadir is None:
-            datadir = "./data/" + planet_name
+            datadir = "./data/"
+        self.full_datadir = datadir + planet_name
         self.planet_name = planet_name
         self.ticid = None
         self.period = None
@@ -296,13 +297,11 @@ class Fitlpf:
         self.prop = get_prop(planet_name)
         transit_time = self.prop[0]["transit_time"] + 2.4e6 + 0.5
         transit_time_err = max(
-            self.prop[0]["transit_time_lower"],
-            self.prop[0]["transit_time_upper"]
+            self.prop[0]["transit_time_lower"], self.prop[0]["transit_time_upper"]
         )
         orbital_period = self.prop[0]["orbital_period"]
         orbital_period_err = max(
-            self.prop[0]["orbital_period_lower"],
-            self.prop[0]["orbital_period_upper"]
+            self.prop[0]["orbital_period_lower"], self.prop[0]["orbital_period_upper"]
         )
         self.period = ufloat(orbital_period, orbital_period_err)
         self.zero_epoch = ufloat(transit_time, transit_time_err)
@@ -343,7 +342,7 @@ class Fitlpf:
         )
         print(f"Planet Mass Reference: {planet_prop[0]['Mp_ref']}")
 
-    def download_data(self):
+    def download_data(self, product=None):
         """
         Downloads data from the specified planet and returns
         the manifest of downloaded products.
@@ -351,21 +350,21 @@ class Fitlpf:
         Returns:
             manifest (str): The manifest of downloaded products.
         """
-        observations = Observations.query_object(
-            self.planet_name,
-            radius="0 deg")
+        if product is None:
+            product = ["LC"]
+        observations = Observations.query_object(self.planet_name, radius="0 deg")
         obs_wanted = (observations["dataproduct_type"] == "timeseries") & (
             observations["obs_collection"] == "TESS"
         )
         print(observations[obs_wanted]["obs_collection", "project", "obs_id"])
         data_products = Observations.get_product_list(observations[obs_wanted])
         products_wanted = Observations.filter_products(
-            data_products, productSubGroupDescription=["LC"]
+            data_products, productSubGroupDescription=product
         )
 
         print(products_wanted["productFilename"])
         manifest = Observations.download_products(
-            products_wanted, download_dir=self.datadir
+            products_wanted, download_dir=self.full_datadir
         )
         print("\nfinished!")
         return manifest
@@ -493,8 +492,7 @@ class Fitlpf:
             tc = ufloat(df["tc"].mean(), df["tc"].std())
             self.tcs.append(tc)
 
-        self.epochs = \
-            epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
+        self.epochs = epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
 
     def get_posterior_samples(self):
         """
@@ -510,8 +508,7 @@ class Fitlpf:
             self.post_samples.append(df)
             tc = ufloat(df["tc"].mean(), df["tc"].std())
             self.tcs.append(tc)
-        self.epochs = \
-            epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
+        self.epochs = epoch_v(getn_v(self.tcs), self.zero_epoch.n, self.period.n)
 
     def calculate_ttv(self):
         """
@@ -532,8 +529,7 @@ class Fitlpf:
 
         a, b = curve_fit(f_1, epochs - epochs[0], tcs - tcs[0])[0]
 
-        self.ttv_mcmc_raw = (tcs - tcs[0] - a * (epochs - epochs[0]) + b) \
-            * DAY_TO_SEC
+        self.ttv_mcmc_raw = (tcs - tcs[0] - a * (epochs - epochs[0]) + b) * DAY_TO_SEC
         self.ttv_mcmc = self.ttv_mcmc_raw - self.ttv_mcmc_raw.mean()
 
     def plot_tcs(self, plot_zero_epoch=False):
